@@ -1,0 +1,8 @@
+(executable
+ (public_name process_tracker)
+ (name main)
+ (libraries process_tracker sqlite3))
+
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
