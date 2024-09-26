@@ -1,7 +1,11 @@
 (executable
  (public_name process_tracker)
  (name main)
- (libraries process_tracker sqlite3))
+ (libraries 
+   process_tracker_lib 
+   sqlite3
+   readline
+   unix))
 
 (env
   (dev

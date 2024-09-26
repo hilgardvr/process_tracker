@@ -1,2 +1,3 @@
 (library
- (name process_tracker))
+ (name process_tracker_lib)
+ (libraries sqlite3 unix))
