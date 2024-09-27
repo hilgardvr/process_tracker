@@ -57,14 +57,8 @@ let create_entry db activ start_t =
     let r = Sqlite3.step stmt in
     log_error db r;
     let row_blob = Sqlite3.row_data stmt in
-    print_endline @@ "length " ^ (string_of_int @@ Array.length row_blob);
-    print_endline "here3";
     let act = parse_activity_row_data row_blob in
-    let res = Sqlite3.step stmt in
-    print_endline "here4";
-    log_error db res;
-    print_endline "here4";
-    print_endline @@ "inserted: " ^ activity_to_string act;
+    let _ = Sqlite3.step stmt in
     act
 
 let set_end_time db id =

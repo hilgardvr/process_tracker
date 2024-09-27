@@ -18,13 +18,26 @@ let parse_command cmd =
 
 let read_cmd () = In_channel.input_line stdin
 
-let add_new_activity db = 
+let get_activity () =
     print_string "Name of activity: ";
     flush stdout;
     let acti = read_cmd () in
+    acti
+(*
+    match acti with
+    | None -> failwith "Expected an activity"
+    | Some a -> a
+*)
+
+let add_new_activity db acti = 
     match acti with
     | None -> None
     | Some a -> Some (Activity_repo.create_entry db a (int_of_float @@ Unix.time ()))
+
+let rec idActivity activities index =
+    match activities with 
+    | [] -> []
+    | h::t -> (index, h) :: idActivity t (index + 1)
 
 let track_activity db =
     let message = " 1. Add a new activity\n 2. Track existing activity\n>" in
@@ -35,7 +48,8 @@ let track_activity db =
     match cmd with
     | 0 -> ()
     | 1 -> begin
-        let ac = add_new_activity db in 
+        let read_ac = get_activity () in
+        let ac = add_new_activity db read_ac in 
         match ac with 
         | None -> ()
         | Some a -> begin
@@ -45,12 +59,32 @@ let track_activity db =
             ()
             end
         end
-    | 2 -> 
+    | 2 -> begin
         let activities = Activity_repo.retrive_distinct_activities db in
-        List.iter (fun x -> print_endline x) activities
+        print_endline @@ List.fold_left (fun acc a -> a ^ acc) "" activities;
+        let ided = idActivity activities 1 in
+        List.iter (fun (i, a) -> print_endline ((string_of_int i) ^ " - " ^ a)) ided;
+        let selectionOpt = read_cmd () in
+        let selection: int = 
+            match selectionOpt with 
+            | None -> failwith "expected a selection"
+            | Some s -> int_of_string s in
+        let found = match (List.find_opt (fun x -> fst x == selection) ided) with
+            | None -> failwith "selection not found"
+            | Some s -> snd s in
+        let ac = add_new_activity db (Some found) in
+        match ac with 
+        | None -> ()
+        | Some a -> 
+            print_endline "Enter to stop....";
+            let _ = read_cmd () in
+            let _ = Activity_repo.set_end_time db (Int64.to_int a.id) in
+            ()
+        end
     | _ -> ()
 
 
+(*         let uiIded = List.map (fun (i, a) -> () activities in *)
 let rec repl db =
     print_string start_message;
     flush stdout;
