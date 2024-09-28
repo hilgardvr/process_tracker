@@ -5,6 +5,8 @@ type activity =
     ; end_time: int64 option
     }
 
+let db = Sqlite3.db_open "process_tracker.db"
+
 let parse_activity_row_data row = 
 (*     print_endline ("row: " ^ (Int.to_string @@ Array.length row)); *)
     let id: int64 = match row.(0) with
@@ -31,7 +33,7 @@ let activity_to_string ac =
         | Some e -> Int64.to_string e in
     Printf.sprintf "id: %s, activity: %s, start_time: %s, end_time: %s" (Int64.to_string ac.id) ac.activity (Int64.to_string ac.start_time) et
 
-let log_error db res = 
+let log_error res = 
     match res with
     | Sqlite3.Rc.OK -> ()
     | Sqlite3.Rc.DONE -> ()
@@ -41,7 +43,7 @@ let log_error db res =
         let errmsg = Sqlite3.errmsg db  in
         print_endline @@ "Error code: " ^ errmsg
 
-let create_tables db = 
+let create_tables () = 
     let create_table = "create table if not exists process (
         id integer primary key autoincrement,
         activity string not null,
@@ -50,21 +52,21 @@ let create_tables db =
         );" in
     Sqlite3.exec db create_table
 
-let create_entry db activ start_t =
+let create_entry activ start_t =
     let insert =  Printf.sprintf ("insert into process(activity, start_time, end_time) values('%s', %d, null) returning id, activity, start_time, end_time;") activ start_t in
     print_endline @@ "inserting: " ^ insert;
     let stmt = Sqlite3.prepare db insert in
     let r = Sqlite3.step stmt in
-    log_error db r;
+    log_error r;
     let row_blob = Sqlite3.row_data stmt in
     let act = parse_activity_row_data row_blob in
     let _ = Sqlite3.step stmt in
     act
 
-let set_end_time db id =
+let set_end_time id =
     let update: string = Printf.sprintf ("update process set end_time = %d where id = %d") (int_of_float @@ Unix.time ()) id in
     let res = Sqlite3.exec db update in
-    log_error db res
+    log_error res
 
 let cb (row: string option array) (header: Sqlite3.header array) = 
     Array.iter (fun a -> print_endline a) header;
@@ -74,7 +76,7 @@ let cb (row: string option array) (header: Sqlite3.header array) =
         | Some e' -> print_endline e'
     ) row
 
-let retrive_entry db =
+let retrive_entry () =
     let select = "select * from process limit 1" in
     let stmt = Sqlite3.prepare db select in
     let _ = Sqlite3.step stmt in
@@ -82,7 +84,7 @@ let retrive_entry db =
     let parsed = parse_activity_row_data row_data in
     parsed
 
-let retrive_distinct_activities db =
+let retrive_distinct_activities () =
     let select = "select distinct activity from process;" in
     let stmt = Sqlite3.prepare db select in
     let rec get_data stmt ac = 
@@ -98,11 +100,11 @@ let retrive_distinct_activities db =
             get_data stmt parsed
         | Sqlite3.Rc.DONE -> ac
         | rc -> 
-            log_error db rc; 
+            log_error rc; 
             ac in
     get_data stmt []
 
-let get_all db =
+let get_all () =
     let select = "select * from process" in
     let stmt = Sqlite3.prepare db select in
     let step = Sqlite3.step stmt in
@@ -114,7 +116,7 @@ let get_all db =
         | _ -> []
 
 
-let get_activity_entries db activity =
+let get_activity_entries activity =
     let select = Printf.sprintf "select * from process where activity = '%s';" activity in
     let stmt = Sqlite3.prepare db select in
     let rec accumulate stmt = 
