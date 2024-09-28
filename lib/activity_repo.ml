@@ -102,12 +102,27 @@ let retrive_distinct_activities db =
             ac in
     get_data stmt []
 
-(*
-    match step with 
-    | Sqlite3.Rc.ROW -> 
-        let row_data = Sqlite3.fold stmt
-            ~f:(fun acc t -> Array.fold_left (fun acc' v 
-            ) ~init:([]: string array) in
-        snd row_data
-    | _ -> []
-*)
+let get_all db =
+    let select = "select * from process" in
+    let stmt = Sqlite3.prepare db select in
+    let step = Sqlite3.step stmt in
+    match step with
+        | Sqlite3.Rc.ROW -> 
+            let data = Sqlite3.row_data stmt in
+            let parsed = parse_activity_row_data data in
+            [parsed]
+        | _ -> []
+
+
+let get_activity_entries db activity =
+    let select = Printf.sprintf "select * from process where activity = '%s';" activity in
+    let stmt = Sqlite3.prepare db select in
+    let rec accumulate stmt = 
+        let step = Sqlite3.step stmt in
+        match step with
+            | Sqlite3.Rc.ROW -> 
+                let data = Sqlite3.row_data stmt in
+                let parsed = parse_activity_row_data data in
+                parsed :: accumulate stmt
+            | _ -> [] in
+    accumulate stmt

@@ -5,7 +5,8 @@
    process_tracker_lib 
    sqlite3
    readline
-   unix))
+   unix
+   either))
 
 (env
   (dev

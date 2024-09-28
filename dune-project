@@ -23,7 +23,8 @@
    ocaml 
    dune 
    (sqlite3 (>= 5.2.0))
-   activity_repo)
+   activity_repo
+   either)
  (tags
   (topics "to describe" your project)))
 
