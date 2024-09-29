@@ -10,6 +10,7 @@ module type ActivityRepoSig = sig
     val create_entry: string -> int -> activity
     val set_end_time: int -> unit
     val get_activity_entries: string -> activity list
+    val delete_activity: string -> unit
 end
 
 module ActivityRepo : ActivityRepoSig = struct 
@@ -131,6 +132,18 @@ module ActivityRepo : ActivityRepoSig = struct
                 [parsed]
             | _ -> []
 
+    let delete_activity (activity: string): unit = 
+        let delete = Printf.sprintf "delete from process where activity = '%s';" activity in
+        let stmt = Sqlite3.prepare db delete in
+        let rec accumulate stmt = 
+            let step = Sqlite3.step stmt in
+            match step with
+                | Sqlite3.Rc.ROW -> 
+                    print_endline "another row found to delete";
+                    accumulate stmt
+                | _ -> [] in
+        let _ = accumulate stmt in
+        print_endline @@ Printf.sprintf "deleted %s" activity
 
     let get_activity_entries activity =
         let select = Printf.sprintf "select * from process where activity = '%s';" activity in
