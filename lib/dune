@@ -1,3 +1,7 @@
 (library
  (name process_tracker_lib)
  (libraries sqlite3 unix))
+
+(env
+  (dev
+    (flags (:standard -warn-error -A))))

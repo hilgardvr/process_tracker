@@ -1,4 +1,4 @@
-open Process_tracker_lib
+open Process_tracker_lib.Activity_repo
 
 let parse_command cmd =
     match cmd with 
@@ -17,18 +17,18 @@ let get_activity () =
     let acti = read_cmd () in
     acti
 
-let rec idActivity activities index =
+let rec id_activity activities index =
     match activities with 
     | [] -> []
-    | h::t -> (index, h) :: idActivity t (index + 1)
+    | h::t -> (index, h) :: id_activity t (index + 1)
 
 let select_distinct_activity () =
-    let distinct_activities = Activity_repo.retrive_distinct_activities () in
+    let distinct_activities = ActivityRepo.get_distinct_activities () in
     if List.is_empty distinct_activities then Either.left "no saved activities" else
-    let ided = idActivity distinct_activities 1 in
+    let ided = id_activity distinct_activities 1 in
     List.iter (fun (i, a) -> print_endline ((string_of_int i) ^ " - " ^ a)) ided;
     let selectionOpt = read_cmd () in
-    let selection = 
+    let selection =
         match selectionOpt with 
         | None -> Either.left "expected a selection"
         | Some s -> begin match int_of_string_opt s with
@@ -55,10 +55,10 @@ let track_activity () =
         | None -> print_endline "didn't get an activity"
         | Some "" -> print_endline "empty activity, not persisting"
         | Some a -> begin
-            let persisted = (Activity_repo.create_entry a (int_of_float @@ Unix.time ())) in
+            let persisted = (ActivityRepo.create_entry a (int_of_float @@ Unix.time ())) in
             print_endline "Enter to stop....";
             let _ = read_cmd () in
-            let _ = Activity_repo.set_end_time (Int64.to_int persisted.id) in
+            let _ = ActivityRepo.set_end_time (Int64.to_int persisted.id) in
             ()
             end
         end
@@ -67,10 +67,10 @@ let track_activity () =
         Either.fold
             ~left:(fun l -> print_endline l)
             ~right:(fun r ->
-                let ac = Activity_repo.create_entry r (int_of_float @@ Unix.time ()) in
+                let ac = ActivityRepo.create_entry r (int_of_float @@ Unix.time ()) in
                 print_endline "Enter to stop....";
                 let _ = read_cmd () in
-                let _ = Activity_repo.set_end_time (Int64.to_int ac.id) in
+                let _ = ActivityRepo.set_end_time (Int64.to_int ac.id) in
                 ())
             found
     | _ -> ()
@@ -89,8 +89,8 @@ let list_activities () =
     match activity_selected_either with
         | Either.Left e -> print_endline e
         | Either.Right activity_selected ->
-            let activity_entries: Activity_repo.activity list = Activity_repo.get_activity_entries activity_selected in
-            let toUi = List.fold_left (fun acc (a:Activity_repo.activity) -> 
+            let activity_entries: ActivityRepo.activity list = ActivityRepo.get_activity_entries activity_selected in
+            let toUi = List.fold_left (fun acc (a:ActivityRepo.activity) -> 
                 match a.end_time with
                 | None -> failwith "acitivity is in process"
                 | Some e -> 
@@ -116,5 +116,5 @@ let rec repl () =
     | _ -> ()
 
 let () = 
-    let _ = Activity_repo.create_tables () in
+    let _ = ActivityRepo.create_tables () in
     repl ()
